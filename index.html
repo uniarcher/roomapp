@@ -1,0 +1,69 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>호실조회</title><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#0b3d7a">
+<link rel="apple-touch-icon" href="icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+*{box-sizing:border-box}body{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;margin:0;background:#f4f6f9;color:#222}
+header{background:#0b3d7a;color:#fff;padding:12px 14px;font-size:18px;font-weight:bold;padding-top:calc(12px + env(safe-area-inset-top))}
+.bar{position:sticky;top:0;background:#fff;padding:10px;display:flex;flex-direction:column;gap:8px;box-shadow:0 1px 3px #0002;z-index:2}
+input,select{font-size:16px;padding:10px;border:1px solid #bbb;border-radius:8px;width:100%}
+#info{padding:8px 14px;color:#666;font-size:13px}
+.it{background:#fff;margin:0 10px 8px;border-radius:10px;padding:12px;box-shadow:0 1px 2px #0002}
+.it b{font-size:15px}.it .s{color:#666;font-size:13px;margin-top:3px}
+mark{background:#ffe066}
+.asb{display:inline-block;background:#d62828;color:#fff;border-radius:4px;padding:1px 6px;font-size:12px;margin-left:4px}.asb.b{background:#e07a00}
+.chip{display:inline-block;background:#e3ecf8;color:#0b3d7a;border-radius:12px;padding:3px 10px;margin:2px;font-size:13px}
+#sh{position:fixed;inset:0;background:#0006;display:none;z-index:9}#sh.on{display:block}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:16px 16px 0 0;padding:16px 18px calc(20px + env(safe-area-inset-bottom));max-height:85vh;overflow:auto}
+.sheet h3{margin:4px 0 12px}.grab{width:40px;height:4px;background:#ccc;border-radius:2px;margin:0 auto 8px}
+dl{display:grid;grid-template-columns:80px 1fr;gap:10px;margin:0}dt{color:#666}dd{margin:0}
+.code{font-size:12px;color:#555;margin-top:4px}.muted{color:#999}
+button{width:100%;margin-top:16px;padding:12px;font-size:16px;border:0;border-radius:8px;background:#0b3d7a;color:#fff}
+</style></head><body>
+<header>호실조회</header>
+<div class="bar"><select id="bf"><option value="">전체 건물</option></select>
+<input id="q" type="search" autocomplete="off" placeholder="호실번호 또는 호실명 (예: 432, 학장실)"></div>
+<div id="info">불러오는 중…</div><div id="list"></div>
+<div id="pin" style="position:fixed;inset:0;background:#0b3d7a;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;gap:14px;padding:30px">
+<div style="font-size:22px;font-weight:bold">호실조회</div><div style="font-size:14px;opacity:.8">비밀번호를 입력하세요</div>
+<input id="pw" type="password" inputmode="numeric" autocomplete="off" style="max-width:220px;text-align:center;font-size:22px;letter-spacing:8px">
+<button id="ub" style="max-width:220px;margin:0;background:#fff;color:#0b3d7a;font-weight:bold">확인</button><div id="pe" style="color:#ffb3b3;font-size:14px;min-height:18px"></div></div>
+<div id="sh" onclick="if(event.target==this)cl()"><div class="sheet" id="sc"></div></div>
+<script>
+let S=[],R=[];const $=id=>document.getElementById(id);
+const norm=s=>String(s).replace(/\s|-/g,'').toUpperCase();
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const asb=x=>x.asb=='텍스'?'<span class="asb">석면</span>':x.asb=='밤'?'<span class="asb b">석면(밤라이트)</span>':'';
+function hl(t,k){t=String(t??'');if(!k)return esc(t);const re=new RegExp([...k].map(c=>c.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('\\s*'),'i');const m=t.match(re);
+ return m?esc(t.slice(0,m.index))+'<mark>'+esc(m[0])+'</mark>'+esc(t.slice(m.index+m[0].length)):esc(t)}
+function search(){const q=$('q').value.normalize('NFC').replace(/\s+/g,' ').trim(),bf=$('bf').value,P=bf?S.filter(x=>x.b==bf):S;let res=[],key='';
+ if(!q){if(!bf){$('info').textContent='건물을 고르거나 검색어를 입력하세요';$('list').innerHTML='';return}res=P}
+ else{const m=q.match(/^(.*?)\s*([A-Za-z]?\d[\dA-Za-z\-]*)$/);
+  if(m){const b=m[1].trim(),r=norm(m[2]);res=P.filter(x=>(!b||x.b.includes(b))&&norm(x.r)==r);if(!res.length)res=P.filter(x=>(!b||x.b.includes(b))&&norm(x.r).startsWith(r))}
+  if(!res.length){const p=q.split(' ');let b='',t=q;if(p.length>1&&P.some(x=>x.b.includes(p[0]))){b=p[0];t=p.slice(1).join(' ')}
+   key=t.replace(/\s/g,'').toUpperCase();res=P.filter(x=>(!b||x.b.includes(b))&&String(x.n??'').replace(/\s/g,'').toUpperCase().includes(key));
+   if(!res.length&&!b){key=q.replace(/\s/g,'').toUpperCase();res=P.filter(x=>String(x.n??'').replace(/\s/g,'').toUpperCase().includes(key))}}}
+ R=res.slice(0,100);$('info').textContent=res.length?res.length+'건'+(res.length>100?' (상위 100건)':''):'검색 결과가 없습니다';
+ $('list').innerHTML=R.map((x,i)=>`<div class="it" onclick="op(${i})"><b>${esc(x.b)} ${esc(x.r)}</b> · ${hl(x.n,key)}${asb(x)}<div class="s">${esc(x.f)} · ${esc(x.u)} · ${x.a??'-'}㎡</div></div>`).join('')}
+function chips(w){if(!w||!w.length)return '<span class="muted">이력 없음</span>';const g={};w.forEach(([y,c])=>(g[y]=g[y]||[]).push(c));
+ const ys=Object.keys(g).sort();return ys.map(y=>`<span class="chip" title="${esc(g[y].join(', '))}" onclick="this.parentNode.querySelector('.code').textContent='${y}: '+this.title">${y}${g[y].length>1?' ×'+g[y].length:''}</span>`).join('')+'<div class="code muted">연도를 누르면 공사번호가 보여요</div>'}
+function op(i){const x=R[i];$('sc').innerHTML=`<div class="grab"></div><h3>${esc(x.b)} ${esc(x.f)} ${esc(x.r)}호</h3><dl>
+<dt>호실명</dt><dd>${esc(x.n)}</dd><dt>용도</dt><dd>${esc(x.u)}</dd><dt>관리부서</dt><dd>${esc(x.d)}</dd><dt>전용면적</dt><dd>${x.a??'-'} ㎡</dd>
+<dt>천장</dt><dd>${esc(x.c)||'-'}${asb(x)}</dd><dt>바닥</dt><dd>${esc(x.fl)||'-'}</dd><dt>공사이력</dt><dd>${chips(x.w)}</dd></dl><button onclick="cl()">닫기</button>`;$('sh').className='on';history.pushState({s:1},'')}
+function cl(){if($('sh').className){$('sh').className='';if(history.state&&history.state.s)history.back()}}
+addEventListener('popstate',()=>$('sh').className='');
+let t;const el=$('q');el.addEventListener('input',()=>{clearTimeout(t);t=setTimeout(search,300)});
+el.addEventListener('compositionend',()=>{clearTimeout(t);t=setTimeout(search,250)});
+el.addEventListener('keyup',e=>{if(e.key=='Enter'){clearTimeout(t);search();el.blur()}});
+$('bf').addEventListener('change',search);
+const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function unlock(pw){const E=await (await fetch('data.enc.json')).json();
+ const km=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
+ const k=await crypto.subtle.deriveKey({name:'PBKDF2',salt:b64(E.s),iterations:E.it,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['decrypt']);
+ const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64(E.iv)},k,b64(E.ct));return JSON.parse(new TextDecoder().decode(pt))}
+function start(d){S=d;$('pin').style.display='none';$('bf').innerHTML='<option value="">전체 건물</option>'+[...new Set(S.map(x=>x.b))].sort().map(v=>`<option>${esc(v)}</option>`).join('');
+ $('info').textContent='건물을 고르거나 검색어를 입력하세요';if(location.hash){el.value=decodeURIComponent(location.hash.slice(1));search()}}
+async function tryPw(pw,save){$('pe').textContent='확인 중…';try{const d=await unlock(pw);if(save)localStorage.setItem('rp',pw);start(d)}catch(e){localStorage.removeItem('rp');$('pe').textContent=save?'비밀번호가 틀렸어요':''}}
+$('ub').onclick=()=>tryPw($('pw').value,true);$('pw').addEventListener('keyup',e=>{if(e.key=='Enter')tryPw($('pw').value,true)});
+if(localStorage.getItem('rp'))tryPw(localStorage.getItem('rp'),false);else $('pw').focus();
+if('serviceWorker' in navigator&&location.protocol!='file:')navigator.serviceWorker.register('sw.js');
+</script></body></html>
