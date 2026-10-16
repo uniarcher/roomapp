@@ -10,8 +10,9 @@ input,select{font-size:16px;padding:10px;border:1px solid #bbb;border-radius:8px
 .it{background:#fff;margin:0 10px 8px;border-radius:10px;padding:12px;box-shadow:0 1px 2px #0002}
 .it b{font-size:15px}.it .s{color:#666;font-size:13px;margin-top:3px}
 mark{background:#ffe066}
+.chip:hover::after{content:attr(data-tip);position:absolute;left:50%;bottom:125%;transform:translateX(-50%);background:#222;color:#fff;padding:4px 8px;border-radius:4px;white-space:nowrap;font-size:12px;z-index:50;pointer-events:none}
 .asb{display:inline-block;background:#d62828;color:#fff;border-radius:4px;padding:1px 6px;font-size:12px;margin-left:4px}.asb.b{background:#e07a00}
-.chip{display:inline-block;background:#e3ecf8;color:#0b3d7a;border-radius:12px;padding:3px 10px;margin:2px;font-size:13px}
+.chip{display:inline-block;background:#e3ecf8;color:#0b3d7a;border-radius:12px;padding:3px 10px;margin:2px;font-size:13px;position:relative;cursor:pointer}
 #sh{position:fixed;inset:0;background:#0006;display:none;z-index:9}#sh.on{display:block}
 .sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:16px 16px 0 0;padding:16px 18px calc(20px + env(safe-area-inset-bottom));max-height:85vh;overflow:auto}
 .sheet h3{margin:4px 0 12px}.grab{width:40px;height:4px;background:#ccc;border-radius:2px;margin:0 auto 8px}
@@ -45,7 +46,7 @@ function search(){const q=$('q').value.normalize('NFC').replace(/\s+/g,' ').trim
  R=res.slice(0,100);$('info').textContent=res.length?res.length+'건'+(res.length>100?' (상위 100건)':''):'검색 결과가 없습니다';
  $('list').innerHTML=R.map((x,i)=>`<div class="it" onclick="op(${i})"><b>${esc(x.b)} ${esc(x.r)}</b> · ${hl(x.n,key)}${asb(x)}<div class="s">${esc(x.f)} · ${esc(x.u)} · ${x.a??'-'}㎡</div></div>`).join('')}
 function chips(w){if(!w||!w.length)return '<span class="muted">이력 없음</span>';const g={};w.forEach(([y,c])=>(g[y]=g[y]||[]).push(c));
- const ys=Object.keys(g).sort();return ys.map(y=>`<span class="chip" title="${esc(g[y].join(', '))}" onclick="this.parentNode.querySelector('.code').textContent='${y}: '+this.title">${y}${g[y].length>1?' ×'+g[y].length:''}</span>`).join('')+'<div class="code muted">연도를 누르면 공사번호가 보여요</div>'}
+ const ys=Object.keys(g).sort();return ys.map(y=>`<span class="chip" data-tip="${esc(g[y].join(', '))}" title="${esc(g[y].join(', '))}" onclick="this.parentNode.querySelector('.code').textContent='${y}: '+this.title">${y}${g[y].length>1?' ×'+g[y].length:''}</span>`).join('')+'<div class="code muted">연도를 누르면 공사번호가 보여요</div>'}
 function op(i){const x=R[i];$('sc').innerHTML=`<div class="grab"></div><h3>${esc(x.b)} ${esc(x.f)} ${esc(x.r)}호</h3><dl>
 <dt>호실명</dt><dd>${esc(x.n)}</dd><dt>용도</dt><dd>${esc(x.u)}</dd><dt>관리부서</dt><dd>${esc(x.d)}</dd><dt>전용면적</dt><dd>${x.a??'-'} ㎡</dd>
 <dt>천장</dt><dd>${esc(x.c)||'-'}${asb(x)}</dd><dt>바닥</dt><dd>${esc(x.fl)||'-'}</dd><dt>공사이력</dt><dd>${chips(x.w)}</dd></dl><button onclick="cl()">닫기</button>`;$('sh').className='on';history.pushState({s:1},'')}
