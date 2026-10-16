@@ -54,8 +54,19 @@ mark{background:#ffe58a;color:inherit;border-radius:3px;padding:0 1px}
 @keyframes up{from{transform:translateY(40px);opacity:.5}}
 .grab{width:40px;height:4px;background:#d0d5dd;border-radius:2px;margin:10px auto 0}
 .cls{display:block;margin:12px 18px 0;width:calc(100% - 36px);height:48px;border:0;border-radius:12px;background:var(--navy);color:#fff;font:inherit;font-size:16px;font-weight:600}
-#detail{display:none}
-@media(min-width:1000px){.grid{grid-template-columns:minmax(380px,5fr) 7fr;align-items:start}
+#detail{display:none}#tree{display:none}
+.crumb{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line);font-weight:600}
+.back{border:0;background:#eef2f8;color:var(--navy);border-radius:8px;width:34px;height:34px;font-size:18px;cursor:pointer;flex:none}
+.nav{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;cursor:pointer}.nav:hover{background:#f7f9fc}
+.nav .ic2{width:38px;height:38px;border-radius:10px;background:#eef2f8;color:var(--navy);display:grid;place-items:center;font-weight:700;flex:none;font-size:13px}
+.nav .t{flex:1;font-weight:600;font-size:15px}.nav .c{color:var(--mut);font-size:12.5px}.nav .gt{color:var(--mut)}
+.tb{display:flex;align-items:center;gap:6px;padding:8px 12px;cursor:pointer;border-radius:8px;margin:1px 6px;font-weight:500}
+.tb:hover{background:#f2f5fa}.tb.on{color:var(--navy);font-weight:700}.tb .cv{width:14px;color:var(--mut);transition:transform .15s;font-size:11px}.tb.open .cv{transform:rotate(90deg)}
+.tb .c{margin-left:auto;color:var(--mut);font-size:12px;font-weight:400}
+.tf{padding:6px 12px 6px 34px;margin:1px 6px;border-radius:8px;cursor:pointer;color:var(--sub);display:flex;font-size:13.5px}.tf:hover{background:#f2f5fa}
+.tf.on{background:var(--navy);color:#fff}.tf .c{margin-left:auto;opacity:.7;font-size:12px}
+.tfilter{margin:10px;width:calc(100% - 20px);height:36px;border:1px solid var(--line);border-radius:8px;padding:0 10px;font:inherit;outline:none}
+@media(min-width:1000px){.main{max-width:1600px}.hd{max-width:1600px}.grid{grid-template-columns:240px minmax(340px,5fr) 7fr;align-items:start}#tree{display:block;position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto;padding-bottom:8px}.crumb .back{display:none}
  #detail{display:block;position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto}#res{max-height:calc(100vh - 220px);overflow:auto}}
 @media(max-width:640px){header{padding:14px 16px 56px;padding-top:calc(14px + env(safe-area-inset-top))}.main{padding:0 12px 20px}.hd .dt{display:none}
  .sbox{padding:10px}select{width:100%}.inp{min-width:100%}.kbd{display:none}.det{padding:16px 18px}.ft td,.ft th{padding:8px 12px}}
@@ -72,16 +83,16 @@ mark{background:#ffe58a;color:inherit;border-radius:3px;padding:0 1px}
 <input id="pw" type="password" inputmode="numeric" autocomplete="off" maxlength="12"><button id="ub">잠금 해제</button><div class="pe" id="pe"></div></div></div>
 <header><div class="hd"><div class="logo">AJOU</div><h1>아주대 호실 조회</h1><span class="dt">자료 기준 2026.10.14 · 공간포털 + 시설팀 공사대장</span><button class="lock" onclick="lockApp()">잠금</button></div></header>
 <div class="main">
-<div class="sbox"><select id="bf"><option value="">전체 건물</option></select>
+<div class="sbox"><select id="bf" style="display:none"><option value=""></option></select>
 <div class="inp"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
 <input id="q" type="search" autocomplete="off" placeholder="호실번호 또는 호실명 (예: 432, 학장실, 팔달관 432)"><span class="kbd">/</span></div>
-<div class="bchips" id="bchips" style="width:100%"></div></div>
-<div class="grid"><div class="panel"><div class="ph">검색 결과 <span class="n" id="info"></span></div><div id="res"></div></div>
+</div>
+<div class="grid"><div class="panel" id="tree"></div><div class="panel"><div id="lh"></div><div id="res"></div></div>
 <div class="panel" id="detail"></div></div>
 <div class="note">기숙사·부속시설 등 일부 건물은 조회 대상에서 제외됩니다. 공사 연도에 마우스를 올리거나 누르면 공사번호가 보입니다.</div></div>
 <div id="sh" onclick="if(event.target==this)cl()"><div class="sheet"><div class="grab"></div><div id="sc"></div><button class="cls" onclick="cl()">닫기</button></div></div>
 <script>
-let S=[],R=[],key='';const $=id=>document.getElementById(id);const wide=()=>matchMedia('(min-width:1000px)').matches;
+let S=[],R=[],key='',cB='',cF='',openB={};const info=()=>document.getElementById('info')||{};const $=id=>document.getElementById(id);const wide=()=>matchMedia('(min-width:1000px)').matches;
 const norm=s=>String(s).replace(/\s|-/g,'').toUpperCase();
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const asb=x=>x.asb=='텍스'?'<span class="bdg t" title="석면텍스 (천장재)">석면</span>':x.asb=='밤'?'<span class="bdg b" title="밤라이트 (벽체)">석면(밤라이트)</span>':'';
@@ -93,15 +104,15 @@ function showCode(e,y){const c=e.closest('[data-cw]');if(c){const o=c.querySelec
 const EMPTY=`<div class="empty"><div class="ic">🔎</div><b>호실을 검색해 보세요</b>호실번호·호실명으로 찾거나 건물을 골라 전체 호실을 볼 수 있어요.<br><br>
 <span class="ex" onclick="ex('학장실')">학장실</span><span class="ex" onclick="ex('팔달관 432')">팔달관 432</span><span class="ex" onclick="ex('세미나실')">세미나실</span></div>`;
 function ex(q){$('q').value=q;search()}
-function search(){const q=$('q').value.normalize('NFC').replace(/\s+/g,' ').trim(),bf=$('bf').value,P=bf?S.filter(x=>x.b==bf):S;let res=[];key='';
- if(!q){if(!bf){$('info').textContent='';$('res').innerHTML=EMPTY;$('detail').innerHTML=EMPTY;return}res=P}
+function search(){const q=$('q').value.normalize('NFC').replace(/\s+/g,' ').trim(),P=S;let res=[];key='';
+ if(!q)return browse();
  else{const m=q.match(/^(.*?)\s*([A-Za-z]?\d[\dA-Za-z\-]*)$/);
   if(m){const b=m[1].trim(),r=norm(m[2]);res=P.filter(x=>(!b||x.b.includes(b))&&norm(x.r)==r);if(!res.length)res=P.filter(x=>(!b||x.b.includes(b))&&norm(x.r).startsWith(r))}
   if(!res.length){const p=q.split(' ');let b='',t=q;if(p.length>1&&P.some(x=>x.b.includes(p[0]))){b=p[0];t=p.slice(1).join(' ')}
    key=t.replace(/\s/g,'').toUpperCase();res=P.filter(x=>(!b||x.b.includes(b))&&String(x.n??'').replace(/\s/g,'').toUpperCase().includes(key));
    if(!res.length&&!b){key=q.replace(/\s/g,'').toUpperCase();res=P.filter(x=>String(x.n??'').replace(/\s/g,'').toUpperCase().includes(key))}}}
- R=res.slice(0,100);$('info').textContent=res.length?`${res.length}건${res.length>100?' · 상위 100건 표시':''}`:'';
- $('res').innerHTML=R.length?R.map((x,i)=>`<div class="it" id="it${i}" onclick="op(${i})"><div class="rn">${esc(x.r)}</div><div class="t"><div class="nm">${hl(x.n,key)||'<span class="mut">(이름 없음)</span>'}${asb(x)}</div><div class="s">${esc(x.b)} · ${esc(x.f)} · ${esc(x.u)}</div></div><div class="ar">${x.a??'-'}㎡</div></div>`).join('')
+ R=res.slice(0,100);$('lh').innerHTML=`<div class="crumb"><button class="back" onclick="clearQ()">‹</button>검색 결과 <span class="n" style="color:var(--sub);font-weight:500;font-size:13px">${res.length}건${res.length>100?' · 상위 100건':''}</span></div>`;
+ $('res').innerHTML=R.length?rowsHTML()
   :`<div class="empty"><div class="ic">🙅</div><b>검색 결과가 없어요</b>호실번호나 이름 일부만 입력해 보세요.</div>`;
  if(wide()){if(R.length)op(0,1);else $('detail').innerHTML=''}}
 function card(x){const fl=S.filter(y=>y.b==x.b&&y.f==x.f);
@@ -121,8 +132,29 @@ const el=$('q');let t;el.addEventListener('input',()=>{clearTimeout(t);t=setTime
 el.addEventListener('compositionend',()=>{clearTimeout(t);t=setTimeout(search,250)});
 el.addEventListener('keyup',e=>{if(e.key=='Enter'){clearTimeout(t);search();if(!wide())el.blur()}});
 addEventListener('keydown',e=>{if(e.key=='/'&&document.activeElement!==el&&document.activeElement!==$('pw')){e.preventDefault();el.focus();el.select()}if(e.key=='Escape')cl()});
-function setB(b){$('bf').value=b;document.querySelectorAll('.bc').forEach(c=>c.classList.toggle('on',c.dataset.b==b));search()}
-$('bf').addEventListener('change',()=>setB($('bf').value));
+const fo=f=>{const m=f.match(/^([BP]?)(\d+)(M?)/);if(!m)return 999;const n=+m[2];return m[1]=='B'?-n:m[1]=='P'?1000+n:n+(m[3]?.5:0)};
+const rc=(a,b)=>a.r.localeCompare(b.r,'ko',{numeric:true});
+let BS=[],FL={};
+function rowsHTML(){return R.map((x,i)=>`<div class="it" id="it${i}" onclick="op(${i})"><div class="rn">${esc(x.r)}</div><div class="t"><div class="nm">${hl(x.n,key)||'<span class="mut">(이름 없음)</span>'}${asb(x)}</div><div class="s">${esc(x.b)} · ${esc(x.f)} · ${esc(x.u)}</div></div><div class="ar">${x.a??'-'}㎡</div></div>`).join('')}
+function crumb(t,back,n){return `<div class="crumb"><button class="back" onclick="${back}">‹</button>${t}${n!=null?` <span style="color:var(--sub);font-weight:500;font-size:13px">${n}</span>`:''}</div>`}
+function browse(){key='';
+ if(cB&&cF){R=S.filter(x=>x.b==cB&&x.f==cF).sort(rc);$('lh').innerHTML=crumb(`${esc(cB)} · ${esc(cF)}`,"goB(cB)",R.length+'실');$('res').innerHTML=rowsHTML();if(wide()&&R.length)op(0,1)}
+ else if(cB&&!wide()){$('lh').innerHTML=crumb(esc(cB),"goHome()",FL[cB].length+'개 층');
+  $('res').innerHTML=FL[cB].map(f=>`<div class="nav" onclick="goF('${esc(cB)}','${f}')"><div class="ic2">${f.replace('층','')}</div><div class="t">${f}</div><span class="c">${S.filter(x=>x.b==cB&&x.f==f).length}실</span><span class="gt">›</span></div>`).join('')}
+ else if(!wide()){$('lh').innerHTML=`<div class="crumb">건물 <span style="color:var(--sub);font-weight:500;font-size:13px">${BS.length}개</span></div>`;
+  $('res').innerHTML=BS.map(b=>`<div class="nav" onclick="goB('${esc(b)}')"><div class="ic2">${esc(b.slice(0,2))}</div><div class="t">${esc(b)}</div><span class="c">${S.filter(x=>x.b==b).length}실</span><span class="gt">›</span></div>`).join('')}
+ else{$('lh').innerHTML=`<div class="crumb">호실 목록</div>`;$('res').innerHTML=EMPTY.replace('건물을 골라 전체 호실을','왼쪽에서 건물·층을 골라 호실을');$('detail').innerHTML=''}
+ tree()}
+function goHome(){cB='';cF='';browse()}
+function goB(b){cB=b;cF='';if(wide()){openB[b]=!openB[b]}else window.scrollTo(0,0);browse()}
+function goF(b,f){cB=b;cF=f;openB[b]=true;if($('q').value){$('q').value=''}window.scrollTo(0,0);browse()}
+function clearQ(){$('q').value='';browse()}
+function tree(){const tf=($('tq')?.value||'').trim();const ae=document.activeElement&&document.activeElement.id=='tq';
+ $('tree').innerHTML=`<div class="ph">건물 · 층 <span class="n">${BS.length}</span></div><input id="tq" class="tfilter" placeholder="건물 찾기" value="${esc(tf)}" oninput="tree()">`+
+ BS.filter(b=>!tf||b.includes(tf)).map(b=>`<div class="tb ${openB[b]?'open':''} ${b==cB?'on':''}" onclick="goB('${esc(b)}')"><span class="cv">▶</span>${esc(b)}<span class="c">${FL[b].length}</span></div>`+
+ (openB[b]?FL[b].map(f=>`<div class="tf ${b==cB&&f==cF?'on':''}" onclick="goF('${esc(b)}','${f}')">${f}<span class="c">${S.filter(x=>x.b==b&&x.f==f).length}</span></div>`).join(''):'')).join('');
+ if(ae){const t=$('tq');t.focus();t.setSelectionRange(t.value.length,t.value.length)}}
+addEventListener('resize',()=>{if(!$('q').value)browse()});
 const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 async function unlock(pw){const E=await (await fetch('data.enc.json')).json();
  const km=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
@@ -130,7 +162,7 @@ async function unlock(pw){const E=await (await fetch('data.enc.json')).json();
  return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:b64(E.iv)},k,b64(E.ct))))}
 function start(d){S=d;$('pin').style.display='none';const bs=[...new Set(S.map(x=>x.b))].sort();
  $('bf').innerHTML='<option value="">전체 건물</option>'+bs.map(v=>`<option>${esc(v)}</option>`).join('');
- $('bchips').innerHTML=['',...bs].map(b=>`<button class="bc${b?'':' on'}" data-b="${esc(b)}" onclick="setB(this.dataset.b)">${b?esc(b):'전체'}</button>`).join('');
+ BS=bs;bs.forEach(b=>FL[b]=[...new Set(S.filter(x=>x.b==b).map(x=>x.f))].sort((a,c)=>fo(a)-fo(c)));
  if(location.hash){el.value=decodeURIComponent(location.hash.slice(1))}search();if(wide())el.focus()}
 async function tryPw(pw,save){$('pe').textContent='확인 중…';try{const d=await unlock(pw);localStorage.setItem('rp',pw);start(d)}
  catch(e){localStorage.removeItem('rp');$('pe').textContent=save?'비밀번호가 맞지 않아요':'';if(save){$('pcard').classList.remove('shake');void $('pcard').offsetWidth;$('pcard').classList.add('shake');$('pw').select()}}}
