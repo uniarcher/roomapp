@@ -93,7 +93,8 @@ mark{background:#ffe58a;color:inherit;border-radius:3px;padding:0 1px}
 .pv .hlt{position:absolute;background:rgba(255,214,0,.55);border:3px solid #f59e0b;border-radius:8px;mix-blend-mode:multiply;pointer-events:none}
 .pv .hld{position:absolute;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:50%;border:4px solid #e11d48;animation:pd 1.3s ease-out infinite;pointer-events:none}
 @keyframes pd{0%{transform:scale(1);opacity:1}100%{transform:scale(7);opacity:0}}
-</style></head><body><div class="smp">샘플 버전 · 도면 미리보기 (원천관 · 팔달관)</div>
+.smp{background:#fff3cd;color:#7a5b00;text-align:center;font-size:12.5px;padding:6px}.hv{display:inline-block;margin:2px 6px 2px 0;padding:3px 9px;border-radius:999px;background:#e8f0fe;color:#1a3f8f;font-size:13px;font-weight:600}.hv i{font-style:normal;color:#5b6b8c;font-weight:500;margin-left:4px}
+</style></head><body><div class="smp">샘플 버전 · 냉난방 현황 미리보기</div>
 <div id="pin"><div class="pc" id="pcard"><div class="logo">AJOU</div><h2>아주대 호실 조회</h2><p>시설팀 내부용 · 비밀번호를 입력하세요</p>
 <input id="pw" type="password" inputmode="numeric" autocomplete="off" maxlength="12"><button id="ub">잠금 해제</button><div class="pe" id="pe"></div></div></div>
 <header><div class="hd"><div class="logo">AJOU</div><h1>아주대 호실 조회</h1><span class="dt">자료 기준 2026.10.14 · 공간포털 + 시설팀 공사대장</span><button class="lock" onclick="lockApp()">잠금</button></div></header>
@@ -135,6 +136,7 @@ function card(x){const fl=S.filter(y=>y.b==x.b&&y.f==x.f);
  <div><label>용도</label><b>${esc(x.u)||'-'}</b></div><div><label>관리부서</label><b>${esc(x.d)||'-'}</b></div>
  <div><label>전용면적</label><b>${x.a??'-'} ㎡</b></div><div><label>바닥</label><b>${esc(x.fl)||'<span class="mut">-</span>'}</b></div>
  <div class="full"><label>천장</label><b>${esc(x.c)||'<span class="mut">-</span>'}</b>${asb(x)}</div>
+ <div class="full"><label>냉난방</label>${hvHTML(x)}</div>
  <div class="full"><label>공사이력</label>${chips(x.w)}<div class="code"></div></div></div></div>
  ${planHTML(x)}
  <div class="ph" style="border-top:1px solid var(--line)">같은 층 호실 <span class="n">${fl.length}개</span></div>
@@ -175,7 +177,7 @@ const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 async function unlock(pw){const E=await (await fetch('data.enc.json')).json();
  const km=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
  const k=await crypto.subtle.deriveKey({name:'PBKDF2',salt:b64(E.s),iterations:E.it,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['decrypt']);
- const d=JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:b64(E.iv)},k,b64(E.ct))));KEY=k;return d}
+ const d=JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:b64(E.iv)},k,b64(E.ct))));KEY=k;loadPI().catch(()=>{});try{HV=JSON.parse(new TextDecoder().decode(await dec('hvac.bin')))}catch(e){HV={}};return d}
 function start(d){S=d;$('pin').style.display='none';const bs=[...new Set(S.map(x=>x.b))].sort();
  $('bf').innerHTML='<option value="">전체 건물</option>'+bs.map(v=>`<option>${esc(v)}</option>`).join('');
  BS=bs;bs.forEach(b=>FL[b]=[...new Set(S.filter(x=>x.b==b).map(x=>x.f))].sort((a,c)=>fo(a)-fo(c)));
@@ -183,6 +185,7 @@ function start(d){S=d;$('pin').style.display='none';const bs=[...new Set(S.map(x
 async function tryPw(pw,save){$('pe').textContent='확인 중…';try{const d=await unlock(pw);localStorage.setItem('rp',pw);start(d)}
  catch(e){localStorage.removeItem('rp');$('pe').textContent=save?'비밀번호가 맞지 않아요':'';if(save){$('pcard').classList.remove('shake');void $('pcard').offsetWidth;$('pcard').classList.add('shake');$('pw').select()}}}
 
+let HV={};function hvHTML(x){const L=(HV[x.b]||{})[String(x.r)];if(!L||!L.length)return '<b><span class="mut">-</span></b>';return '<div>'+L.map(([k,y,n])=>`<span class="hv">${esc(k)}${n>1?' ×'+n:''}<i>${y?y+'년':'연도 미상'}</i></span>`).join('')+'</div>'}
 let KEY=null,PI=null,PIp=null;const IMG={};
 async function dec(u){const b=new Uint8Array(await (await fetch('plans/'+u)).arrayBuffer());return crypto.subtle.decrypt({name:'AES-GCM',iv:b.slice(0,12)},KEY,b.slice(12))}
 function loadPI(){return PIp=PIp||dec('index.bin').then(a=>PI=JSON.parse(new TextDecoder().decode(a)))}
@@ -191,7 +194,7 @@ async function img(u){return IMG[u]=IMG[u]||dec(u).then(a=>URL.createObjectURL(n
 function rc2(r){if(r.p){const xs=r.p.map(q=>q[0]),ys=r.p.map(q=>q[1]),a=Math.min(...xs),b=Math.min(...ys);return [a,b,Math.max(...xs)-a,Math.max(...ys)-b]}return r.b}
 function hlHTML(r,P){if(!r)return '';if(r.p)return `<svg class="hls" viewBox="0 0 ${P.w} ${P.h}" width="${P.w}" height="${P.h}"><polygon points="${r.p.map(q=>(q[0]*P.w).toFixed(1)+','+(q[1]*P.h).toFixed(1)).join(' ')}"/></svg>`;
  const b=r.b,x=b[0]*P.w,y=b[1]*P.h,w=b[2]*P.w,h=b[3]*P.h;return `<div class="hlt" style="left:${x-8}px;top:${y-6}px;width:${w+16}px;height:${h+12}px"></div><div class="hld" style="left:${x+w/2}px;top:${y+h/2}px"></div>`}
-function planHTML(x){setTimeout(()=>mountPlan(x),0);return `<div class="ph" style="border-top:1px solid var(--line)">도면 <span class="n">${esc(x.b)} ${esc(x.f)}</span></div><div class="pvw" id="pvw"><div class="pv" id="pv"><div class="pvld">도면 불러오는 중…</div></div></div>`}
+function planHTML(x){if(PI&&!(PI[x.b]&&PI[x.b][x.f]))return '';setTimeout(()=>mountPlan(x),0);return `<div class="ph" style="border-top:1px solid var(--line)">도면 <span class="n">${esc(x.b)} ${esc(x.f)}</span></div><div class="pvw" id="pvw"><div class="pv" id="pv"><div class="pvld">도면 불러오는 중…</div></div></div>`}
 async function mountPlan(x){const w=$('pvw'),v=$('pv');if(!w||!KEY)return;await loadPI();if($('pv')!==v)return;
  const P=PI[x.b]&&PI[x.b][x.f];if(!P){w.previousElementSibling.remove();w.remove();return}
  const url=await img(P.u);if($('pv')!==v)return;const r=P.r[x.r]||P.r[String(x.r).replace(/^[A-Z]/,'')]||null;
@@ -219,5 +222,6 @@ async function mountPlan(x){const w=$('pvw'),v=$('pv');if(!w||!KEY)return;await 
 function lockApp(){localStorage.removeItem('rp');location.reload()}
 $('ub').onclick=()=>tryPw($('pw').value,true);$('pw').addEventListener('keyup',e=>{if(e.key=='Enter')tryPw($('pw').value,true)});
 if(localStorage.getItem('rp'))tryPw(localStorage.getItem('rp'),false);else{$('pe').textContent='';$('pw').focus()}
+
 
 </script></body></html>
