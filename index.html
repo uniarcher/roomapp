@@ -78,6 +78,21 @@ mark{background:#ffe58a;color:inherit;border-radius:3px;padding:0 1px}
 .pc input:focus{border-color:var(--acc);box-shadow:0 0 0 4px rgba(47,111,219,.12)}
 .pc button{margin-top:12px;width:100%;height:50px;border:0;border-radius:12px;background:var(--navy);color:#fff;font:inherit;font-size:16px;font-weight:600;cursor:pointer}
 .pe{color:#d92d20;font-size:13px;min-height:18px;margin-top:10px}.shake{animation:sk .3s}@keyframes sk{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.pvw{position:relative;border-top:1px solid var(--line)}
+.pv{position:relative;height:52vh;min-height:300px;overflow:hidden;background:#fff;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+.pv:active{cursor:grabbing}.pv .ly{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}.pv img{display:block;width:100%;height:100%;pointer-events:none}
+.pv .hlr{position:absolute;border:3px solid #e11d48;border-radius:10px;background:rgba(225,29,72,.14);box-shadow:0 0 0 4px rgba(225,29,72,.25);animation:pl 1.4s ease-in-out infinite;pointer-events:none}
+@keyframes pl{50%{box-shadow:0 0 0 12px rgba(225,29,72,.08)}}
+.pvt{position:absolute;right:10px;top:10px;display:flex;gap:6px;z-index:2}.pvt button{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.95);font:inherit;font-size:17px;font-weight:700;color:var(--navy);cursor:pointer;box-shadow:var(--sh)}
+.pvm{position:absolute;left:12px;bottom:10px;font-size:12px;color:var(--sub);background:rgba(255,255,255,.9);padding:3px 8px;border-radius:6px;z-index:2}
+.pvw.fs{position:fixed;inset:0;z-index:80;background:#fff;border:0}.pvw.fs .pv{height:100vh;height:100dvh}
+.pvld{position:absolute;inset:0;display:grid;place-items:center;color:var(--mut)}
+.smp{background:#fff3cd;color:#7a5b00;text-align:center;font-size:12.5px;padding:6px}
+.pv .hls{position:absolute;left:0;top:0;pointer-events:none}.pv .hls polygon{fill:rgba(225,29,72,.22);stroke:#e11d48;stroke-width:6;stroke-linejoin:round;animation:pf 1.6s ease-in-out infinite}
+@keyframes pf{50%{fill:rgba(225,29,72,.08)}}
+.pv .hlt{position:absolute;background:rgba(255,214,0,.55);border:3px solid #f59e0b;border-radius:8px;mix-blend-mode:multiply;pointer-events:none}
+.pv .hld{position:absolute;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:50%;border:4px solid #e11d48;animation:pd 1.3s ease-out infinite;pointer-events:none}
+@keyframes pd{0%{transform:scale(1);opacity:1}100%{transform:scale(7);opacity:0}}
 </style></head><body>
 <div id="pin"><div class="pc" id="pcard"><div class="logo">AJOU</div><h2>아주대 호실 조회</h2><p>시설팀 내부용 · 비밀번호를 입력하세요</p>
 <input id="pw" type="password" inputmode="numeric" autocomplete="off" maxlength="12"><button id="ub">잠금 해제</button><div class="pe" id="pe"></div></div></div>
@@ -121,6 +136,7 @@ function card(x){const fl=S.filter(y=>y.b==x.b&&y.f==x.f);
  <div><label>전용면적</label><b>${x.a??'-'} ㎡</b></div><div><label>바닥</label><b>${esc(x.fl)||'<span class="mut">-</span>'}</b></div>
  <div class="full"><label>천장</label><b>${esc(x.c)||'<span class="mut">-</span>'}</b>${asb(x)}</div>
  <div class="full"><label>공사이력</label>${chips(x.w)}<div class="code"></div></div></div></div>
+ ${planHTML(x)}
  <div class="ph" style="border-top:1px solid var(--line)">같은 층 호실 <span class="n">${fl.length}개</span></div>
  <table class="ft"><tr><th>호실</th><th>호실명</th><th>천장</th><th>공사</th></tr>${fl.map(y=>`<tr class="c ${y===x?'hit':''}" onclick="openX(${S.indexOf(y)})"><td><b>${esc(y.r)}</b></td><td>${esc(y.n)}</td><td>${esc(y.c)||'<span class="mut">-</span>'}${asb(y)}</td><td>${chips(y.w)}</td></tr>`).join('')}</table>`}
 function openX(si){const x=S[si];if(wide()){$('detail').innerHTML=card(x);$('detail').scrollTop=0;document.querySelectorAll('.it.sel').forEach(e=>e.classList.remove('sel'))}else{$('sc').innerHTML=card(x);$('sc').parentNode.scrollTop=0}}
@@ -159,15 +175,50 @@ const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 async function unlock(pw){const E=await (await fetch('data.enc.json')).json();
  const km=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
  const k=await crypto.subtle.deriveKey({name:'PBKDF2',salt:b64(E.s),iterations:E.it,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['decrypt']);
- return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:b64(E.iv)},k,b64(E.ct))))}
+ const d=JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:b64(E.iv)},k,b64(E.ct))));KEY=k;loadPI().catch(()=>{});return d}
 function start(d){S=d;$('pin').style.display='none';const bs=[...new Set(S.map(x=>x.b))].sort();
  $('bf').innerHTML='<option value="">전체 건물</option>'+bs.map(v=>`<option>${esc(v)}</option>`).join('');
  BS=bs;bs.forEach(b=>FL[b]=[...new Set(S.filter(x=>x.b==b).map(x=>x.f))].sort((a,c)=>fo(a)-fo(c)));
  if(location.hash){el.value=decodeURIComponent(location.hash.slice(1))}search();if(wide())el.focus()}
 async function tryPw(pw,save){$('pe').textContent='확인 중…';try{const d=await unlock(pw);localStorage.setItem('rp',pw);start(d)}
  catch(e){localStorage.removeItem('rp');$('pe').textContent=save?'비밀번호가 맞지 않아요':'';if(save){$('pcard').classList.remove('shake');void $('pcard').offsetWidth;$('pcard').classList.add('shake');$('pw').select()}}}
+
+let KEY=null,PI=null,PIp=null;const IMG={};
+async function dec(u){const b=new Uint8Array(await (await fetch('plans/'+u)).arrayBuffer());return crypto.subtle.decrypt({name:'AES-GCM',iv:b.slice(0,12)},KEY,b.slice(12))}
+function loadPI(){return PIp=PIp||dec('index.bin').then(a=>PI=JSON.parse(new TextDecoder().decode(a)))}
+async function img(u){return IMG[u]=IMG[u]||dec(u).then(a=>URL.createObjectURL(new Blob([a],{type:'image/webp'})))}
+
+function rc2(r){if(r.p){const xs=r.p.map(q=>q[0]),ys=r.p.map(q=>q[1]),a=Math.min(...xs),b=Math.min(...ys);return [a,b,Math.max(...xs)-a,Math.max(...ys)-b]}return r.b}
+function hlHTML(r,P){if(!r)return '';if(r.p)return `<svg class="hls" viewBox="0 0 ${P.w} ${P.h}" width="${P.w}" height="${P.h}"><polygon points="${r.p.map(q=>(q[0]*P.w).toFixed(1)+','+(q[1]*P.h).toFixed(1)).join(' ')}"/></svg>`;
+ const b=r.b,x=b[0]*P.w,y=b[1]*P.h,w=b[2]*P.w,h=b[3]*P.h;return `<div class="hlt" style="left:${x-8}px;top:${y-6}px;width:${w+16}px;height:${h+12}px"></div><div class="hld" style="left:${x+w/2}px;top:${y+h/2}px"></div>`}
+function planHTML(x){if(PI&&!(PI[x.b]&&PI[x.b][x.f]))return '';setTimeout(()=>mountPlan(x),0);return `<div class="ph" style="border-top:1px solid var(--line)">도면 <span class="n">${esc(x.b)} ${esc(x.f)}</span></div><div class="pvw" id="pvw"><div class="pv" id="pv"><div class="pvld">도면 불러오는 중…</div></div></div>`}
+async function mountPlan(x){const w=$('pvw'),v=$('pv');if(!w||!KEY)return;await loadPI();if($('pv')!==v)return;
+ const P=PI[x.b]&&PI[x.b][x.f];if(!P){w.previousElementSibling.remove();w.remove();return}
+ const url=await img(P.u);if($('pv')!==v)return;const r=P.r[x.r]||P.r[String(x.r).replace(/^[A-Z]/,'')]||null;
+ v.innerHTML=`<div class="ly" style="width:${P.w}px;height:${P.h}px"><img src="${url}" draggable="false">${hlHTML(r,P)}</div>
+ <div class="pvt"><button title="확대" data-a="+">+</button><button title="축소" data-a="-">−</button><button title="맞춤" data-a="0">⤢</button><button title="전체화면" data-a="f">⛶</button></div>
+ <div class="pvm">${r?esc(x.r)+(r.p?'호 영역 표시 · ':'호 번호 위치 표시 · '):''}두 손가락/휠로 확대 · 드래그로 이동</div>`;
+ const ly=v.querySelector('.ly');let s=1,tx=0,ty=0,fit=1;
+ const ap=()=>{ly.style.transform=`translate(${tx}px,${ty}px) scale(${s})`};
+ const zoomAt=(ns,cx,cy)=>{ns=Math.min(Math.max(ns,fit*.8),fit*12);tx=cx-(cx-tx)*ns/s;ty=cy-(cy-ty)*ns/s;s=ns;ap()};
+ const doFit=(focus)=>{const W=v.clientWidth,H=v.clientHeight;fit=Math.min(W/P.w,H/P.h);s=fit;tx=(W-P.w*s)/2;ty=(H-P.h*s)/2;
+  if(focus&&r){const c=rc2(r);s=Math.min(fit*5,1,0.8*Math.min(W/(c[2]*P.w+1),H/(c[3]*P.h+1)));const cx=(c[0]+c[2]/2)*P.w,cy=(c[1]+c[3]/2)*P.h;tx=W/2-cx*s;ty=H/2-cy*s}ap()};
+ doFit(true);
+ const pts=new Map();let last=null;
+ v.addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;v.setPointerCapture(e.pointerId);pts.set(e.pointerId,[e.clientX,e.clientY]);last=null});
+ v.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId))return;const o=pts.get(e.pointerId);pts.set(e.pointerId,[e.clientX,e.clientY]);const R=v.getBoundingClientRect();
+  if(pts.size==1){tx+=e.clientX-o[0];ty+=e.clientY-o[1];ap()}else if(pts.size==2){const [a,b]=[...pts.values()];const d=Math.hypot(a[0]-b[0],a[1]-b[1]),cx=(a[0]+b[0])/2-R.left,cy=(a[1]+b[1])/2-R.top;
+   if(last){tx+=cx-last.cx;ty+=cy-last.cy;zoomAt(s*d/last.d,cx,cy)}last={d,cx,cy}}});
+ const up=e=>{pts.delete(e.pointerId);last=null};v.addEventListener('pointerup',up);v.addEventListener('pointercancel',up);
+ v.addEventListener('wheel',e=>{e.preventDefault();const R=v.getBoundingClientRect();zoomAt(s*Math.exp(-e.deltaY*.0015),e.clientX-R.left,e.clientY-R.top)},{passive:false});
+ v.addEventListener('dblclick',e=>{const R=v.getBoundingClientRect();zoomAt(s*2,e.clientX-R.left,e.clientY-R.top)});
+ v.querySelector('.pvt').addEventListener('click',e=>{const a=e.target.dataset.a;if(!a)return;e.stopPropagation();const W=v.clientWidth/2,H=v.clientHeight/2;
+  if(a=='+')zoomAt(s*1.5,W,H);if(a=='-')zoomAt(s/1.5,W,H);if(a=='0')doFit(false);
+  if(a=='f'){w.classList.toggle('fs');e.target.textContent=w.classList.contains('fs')?'✕':'⛶';setTimeout(()=>doFit(true),30)}});
+}
 function lockApp(){localStorage.removeItem('rp');location.reload()}
 $('ub').onclick=()=>tryPw($('pw').value,true);$('pw').addEventListener('keyup',e=>{if(e.key=='Enter')tryPw($('pw').value,true)});
 if(localStorage.getItem('rp'))tryPw(localStorage.getItem('rp'),false);else{$('pe').textContent='';$('pw').focus()}
+
 if('serviceWorker' in navigator&&location.protocol!='file:')navigator.serviceWorker.register('sw.js');
 </script></body></html>
